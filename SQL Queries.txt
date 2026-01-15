@@ -1,0 +1,190 @@
+cheikh=# CREATE SCHEMA IF NOT EXISTS bike;
+NOTICE:  schema "bike" already exists, skipping
+CREATE SCHEMA
+cheikh=# SET search_path TO bike;
+SET
+cheikh=# 
+cheikh=# DROP TABLE IF EXISTS trips;
+NOTICE:  table "trips" does not exist, skipping
+DROP TABLE
+cheikh=# CREATE TABLE trips (
+cheikh(#   trip_duration            INTEGER,
+cheikh(#   start_time               TIMESTAMP,
+cheikh(#   stop_time                TIMESTAMP,
+cheikh(#   start_station_id         INTEGER,
+cheikh(#   start_station_name       TEXT,
+cheikh(#   start_station_latitude   DOUBLE PRECISION,
+cheikh(#   start_station_longitude  DOUBLE PRECISION,
+cheikh(#   end_station_id           INTEGER,
+cheikh(#   end_station_name         TEXT,
+cheikh(#   end_station_latitude     DOUBLE PRECISION,
+cheikh(#   end_station_longitude    DOUBLE PRECISION,
+cheikh(#   bike_id                  INTEGER,
+cheikh(#   user_type                TEXT,
+cheikh(#   birth_year               DOUBLE PRECISION,
+cheikh(#   gender                   TEXT,
+cheikh(#   trip_date                DATE,
+cheikh(#   start_hour               INTEGER,
+cheikh(#   trip_duration_minutes    DOUBLE PRECISION,
+cheikh(#   age                      DOUBLE PRECISION
+cheikh(# );
+CREATE TABLE
+cheikh=# 
+cheikh=# DROP TABLE IF EXISTS weather_daily;
+NOTICE:  table "weather_daily" does not exist, skipping
+DROP TABLE
+cheikh=# CREATE TABLE weather_daily (
+cheikh(#   weather_date   DATE PRIMARY KEY,
+cheikh(#   avg_temp       DOUBLE PRECISION,
+cheikh(#   max_temp       DOUBLE PRECISION,
+cheikh(#   min_temp       DOUBLE PRECISION,
+cheikh(#   precipitation  DOUBLE PRECISION,
+cheikh(#   snowfall       DOUBLE PRECISION,
+cheikh(#   avg_wind       DOUBLE PRECISION
+cheikh(# );
+CREATE TABLE
+cheikh=# SET search_path TO bike;
+SET
+cheikh=# 
+cheikh=# COPY trips
+cheikh-# FROM '/Users/cheikh/Downloads/bike-rental-starter-kit/data/cleaned/citibike_trips_clean.csv'
+cheikh-# WITH (FORMAT csv, HEADER true);
+COPY 247491
+cheikh=# 
+cheikh=# COPY weather_daily
+cheikh-# FROM '/Users/cheikh/Downloads/bike-rental-starter-kit/data/cleaned/weather_daily_clean.csv'
+cheikh-# WITH (FORMAT csv, HEADER true);
+COPY 366
+cheikh=# SET search_path TO bike;
+SET
+cheikh=# 
+cheikh=# SELECT COUNT(*) AS trips_rows FROM trips;
+ trips_rows 
+------------
+     247491
+(1 row)
+
+cheikh=# SELECT COUNT(*) AS weather_rows FROM weather_daily;
+ weather_rows 
+--------------
+          366
+(1 row)
+CREATE VIEW
+cheikh=# CREATE OR REPLACE VIEW v_trips_with_weather AS
+cheikh-# SELECT
+cheikh-#   t.*,
+cheikh-#   w.avg_temp,
+cheikh-#   w.max_temp,
+cheikh-#   w.min_temp,
+cheikh-#   w.precipitation,
+cheikh-#   w.snowfall,
+cheikh-#   w.avg_wind
+cheikh-# FROM trips t
+cheikh-# LEFT JOIN weather_daily w
+cheikh-#   ON t.trip_date = w.weather_date;
+CREATE VIEW
+cheikh=# SELECT *
+cheikh-# FROM v_trips_with_weather
+cheikh-# LIMIT 5;
+ trip_duration |     start_time      |      stop_time      | start_station_id | start_station_name | start_station_latitude | start_station_longitude | end_station_id | end_station_name | end_station_latitude | end_station_longitude | bike_id | user_type  | birth_year | gender  | trip_date  | start_hour | trip_duration_minutes | age | avg_temp | max_temp | min_temp | precipitation | snowfall | avg_wind 
+---------------+---------------------+---------------------+------------------+--------------------+------------------------+-------------------------+----------------+------------------+----------------------+-----------------------+---------+------------+------------+---------+------------+------------+-----------------------+-----+----------+----------+----------+---------------+----------+----------
+           362 | 2016-01-01 00:02:52 | 2016-01-01 00:08:54 |             3186 | Grove St PATH      |      40.71958611647166 |      -74.04311746358871 |           3209 | Brunswick St     |           40.7241765 |           -74.0506564 |   24647 | Subscriber |       1964 | Female  | 2016-01-01 |          0 |     6.033333333333333 |  52 |       41 |       43 |       34 |             0 |        0 |    12.75
+           200 | 2016-01-01 00:18:22 | 2016-01-01 00:21:42 |             3186 | Grove St PATH      |      40.71958611647166 |      -74.04311746358871 |           3213 | Van Vorst Park   |          40.71848892 |         -74.047726625 |   24605 | Subscriber |       1962 | Male    | 2016-01-01 |          0 |    3.3333333333333335 |  54 |       41 |       43 |       34 |             0 |        0 |    12.75
+           202 | 2016-01-01 00:18:25 | 2016-01-01 00:21:47 |             3186 | Grove St PATH      |      40.71958611647166 |      -74.04311746358871 |           3213 | Van Vorst Park   |          40.71848892 |         -74.047726625 |   24689 | Subscriber |       1962 | Female  | 2016-01-01 |          0 |    3.3666666666666667 |  54 |       41 |       43 |       34 |             0 |        0 |    12.75
+           248 | 2016-01-01 00:23:13 | 2016-01-01 00:27:21 |             3209 | Brunswick St       |             40.7241765 |             -74.0506564 |           3203 | Hamilton Park    |         40.727595966 |         -74.044247311 |   24693 | Subscriber |       1984 | Male    | 2016-01-01 |          0 |     4.133333333333334 |  32 |       41 |       43 |       34 |             0 |        0 |    12.75
+           903 | 2016-01-01 01:03:20 | 2016-01-01 01:18:24 |             3195 | Sip Ave            |      40.73074262530658 |      -74.06378388404846 |           3210 | Pershing Field   |         40.742677141 |         -74.051788633 |   24573 | Customer   |            | Unknown | 2016-01-01 |          1 |                 15.05 |     |       41 |       43 |       34 |             0 |        0 |    12.75
+(5 rows)
+
+cheikh=# CREATE OR REPLACE VIEW v_daily_trips_weather AS
+cheikh-# SELECT
+cheikh-#   t.trip_date,
+cheikh-#   COUNT(*) AS trip_count,
+cheikh-#   ROUND(AVG(t.trip_duration_minutes)::numeric, 2) AS avg_trip_minutes,
+cheikh-#   w.avg_temp,
+cheikh-#   w.precipitation,
+cheikh-#   w.snowfall,
+cheikh-#   w.avg_wind
+cheikh-# FROM trips t
+cheikh-# LEFT JOIN weather_daily w
+cheikh-#   ON t.trip_date = w.weather_date
+cheikh-# GROUP BY t.trip_date, w.avg_temp, w.precipitation, w.snowfall, w.avg_wind
+cheikh-# ORDER BY t.trip_date;
+CREATE VIEW
+cheikh=# SELECT *
+cheikh-# FROM v_daily_trips_weather
+cheikh-# ORDER BY trip_date
+cheikh-# LIMIT 10;
+ trip_date  | trip_count | avg_trip_minutes | avg_temp | precipitation | snowfall | avg_wind 
+------------+------------+------------------+----------+---------------+----------+----------
+ 2016-01-01 |        163 |            10.55 |       41 |             0 |        0 |    12.75
+ 2016-01-02 |        206 |            14.96 |       36 |             0 |        0 |      9.4
+ 2016-01-03 |        276 |            13.84 |       37 |             0 |        0 |    10.29
+ 2016-01-04 |        286 |             7.67 |       32 |             0 |        0 |    17.22
+ 2016-01-05 |        273 |             6.57 |       19 |             0 |        0 |     9.84
+ 2016-01-06 |        353 |             7.81 |       28 |             0 |        0 |     5.37
+ 2016-01-07 |        442 |            10.59 |       35 |             0 |        0 |     3.36
+ 2016-01-08 |        422 |             7.73 |       38 |             0 |        0 |     8.05
+ 2016-01-09 |        293 |            10.17 |       44 |          0.01 |        0 |     6.71
+ 2016-01-10 |        206 |            11.71 |       53 |          1.77 |        0 |    15.43
+(10 rows)
+cheikh=# CREATE OR REPLACE VIEW v_weather_impact_summary AS
+cheikh-# SELECT
+cheikh-#   CASE
+cheikh-#     WHEN precipitation IS NULL THEN 'Unknown'
+cheikh-#     WHEN precipitation = 0 THEN 'No rain'
+cheikh-#     WHEN precipitation > 0 AND precipitation <= 0.1 THEN 'Light rain'
+cheikh-#     WHEN precipitation > 0.1 AND precipitation <= 0.5 THEN 'Moderate rain'
+cheikh-#     ELSE 'Heavy rain'
+cheikh-#   END AS rain_bucket,
+cheikh-#   COUNT(*) AS days_in_bucket,
+cheikh-#   ROUND(AVG(trip_count)::numeric, 0) AS avg_daily_trips,
+cheikh-#   ROUND(AVG(avg_temp)::numeric, 1) AS avg_temp_in_bucket
+cheikh-# FROM v_daily_trips_weather
+cheikh-# GROUP BY rain_bucket
+cheikh-# ORDER BY avg_daily_trips DESC;
+CREATE VIEW
+cheikh=# SELECT * FROM v_weather_impact_summary;
+  rain_bucket  | days_in_bucket | avg_daily_trips | avg_temp_in_bucket 
+---------------+----------------+-----------------+--------------------
+ No rain       |            245 |             742 |               57.4
+ Moderate rain |             46 |             611 |               59.6
+ Light rain    |             49 |             567 |               55.4
+ Heavy rain    |             22 |             449 |               58.8
+(4 rows)
+
+cheikh=# CREATE OR REPLACE VIEW v_hourly_demand AS
+cheikh-# SELECT
+cheikh-#   start_hour,
+cheikh-#   COUNT(*) AS trips
+cheikh-# FROM trips
+cheikh-# GROUP BY start_hour
+cheikh-# ORDER BY start_hour;
+CREATE VIEW
+cheikh=# SELECT * FROM v_hourly_demand;
+ start_hour | trips 
+------------+-------
+          0 |  2532
+          1 |  1314
+          2 |   801
+          3 |   514
+          4 |   580
+          5 |  2220
+          6 |  6816
+          7 | 16832
+          8 | 29252
+          9 | 14922
+         10 |  9518
+         11 |  9214
+         12 | 10381
+         13 | 10619
+         14 | 10434
+         15 | 10599
+         16 | 13193
+         17 | 22072
+         18 | 24473
+         19 | 18307
+         20 | 13204
+         21 |  9257
+         22 |  6470
+         23 |  3967
+(24 rows)
